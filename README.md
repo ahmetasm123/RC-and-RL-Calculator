@@ -1,6 +1,6 @@
 # RC and RL Calculator
 
-A Python GUI application for exploring series **RL** (resistor–inductor) and **RC** (resistor–capacitor) circuits. It computes key electrical parameters and can plot voltage/current waveforms and phasor diagrams.
+A Python GUI and CLI application for exploring series **RL** (resistor–inductor) and **RC** (resistor–capacitor) circuits. It computes key electrical parameters and can plot voltage/current waveforms and phasor diagrams.
 
 ## Installation
 1. Ensure Python 3.11+ is installed.
@@ -8,7 +8,10 @@ A Python GUI application for exploring series **RL** (resistor–inductor) and *
    ```bash
    pip install -r requirements.txt
    ```
-   On Linux you may also need the Tk GUI libraries, e.g. `sudo apt-get install python3-tk`.
+   Tkinter is required for the GUI but is not installed automatically on some platforms. On Linux install it separately, for example:
+   ```bash
+   sudo apt-get install python3-tk
+   ```
 
 ## Running the GUI
 Launch the calculator with:
@@ -27,18 +30,17 @@ python -m rc_rl_calculator
 4. Click **Compute** to calculate derived values such as impedance, phase angle, current and voltages.
 5. Use **Plot Waveforms** or **Plot Phasors** to visualise the circuit behaviour.
 
-## Command Line Interface (planned)
-Run the module directly to launch the application:
+## Command Line Interface
+The calculator also provides a CLI through the installed `rc-rl-calc` command. View available options with:
 
 ```bash
-python -m rc_rl_calculator
+rc-rl-calc --help
 ```
 
-Command-line flags for performing calculations without the GUI are planned for a
-future release, e.g.:
+Example calculation for a series RC circuit:
 
 ```bash
-python -m rc_rl_calculator --help
+rc-rl-calc --voltage 120 --resistance 100 --component 1e-6 --frequency 60 --circuit RC
 ```
 
 ## Core Functions

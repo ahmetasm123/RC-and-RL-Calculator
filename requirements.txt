@@ -1,4 +1,3 @@
 numpy
 matplotlib
-tk
 pytest-cov
