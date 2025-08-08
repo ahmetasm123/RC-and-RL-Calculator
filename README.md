@@ -2,7 +2,7 @@
 
 [![codecov](https://codecov.io/gh/OWNER/RC-and-RL-Calculator/branch/main/graph/badge.svg)](https://codecov.io/gh/OWNER/RC-and-RL-Calculator)
 
-A Python GUI and CLI application for exploring series **RL** (resistor–inductor) and **RC** (resistor–capacitor) circuits. It computes key electrical parameters and can plot voltage/current waveforms and phasor diagrams.
+A Python GUI and CLI application for exploring series **RL** (resistor–inductor) and **RC** (resistor–capacitor) circuits. It computes key electrical parameters and can plot voltage/current waveforms and phasor diagrams. Recent updates also add support for **RLC** circuits in both series and parallel configurations via the CLI.
 
 ## Installation
 1. Ensure Python 3.11+ is installed.
@@ -49,6 +49,18 @@ Example calculation for a series RC circuit:
 rc-rl-calc --voltage 120 --resistance 100 --component 1e-6 --frequency 60 --circuit RC
 ```
 
+Series RLC example:
+
+```bash
+rc-rl-calc --voltage 10 --resistance 10 --inductance 0.05 --capacitance 1e-6 --frequency 1000 --circuit RLC_SERIES
+```
+
+Parallel RLC example:
+
+```bash
+rc-rl-calc --voltage 10 --resistance 100 --inductance 0.1 --capacitance 1e-5 --frequency 1000 --circuit RLC_PARALLEL
+```
+
 ## Examples
 
 Example scripts demonstrating the library are available in the
@@ -65,6 +77,26 @@ Derives the missing value among component magnitude, reactance and angular frequ
 
 ### `calculate_series_ac_circuit(V_rms, R, component_val, reactance_val, f, circuit_type)`
 Computes parameters for a series RL or RC circuit. Requires the RMS source voltage, resistance and any two of component value, reactance or frequency. Returns a dictionary containing impedance, phase angle, currents and voltages.
+
+### `calculate_series_rlc_circuit(V_rms, R, L, C, f)`
+Calculates impedance, phase angle and component voltages for a series RLC circuit.
+Both inductance and capacitance must be greater than zero.
+
+### `calculate_parallel_rlc_circuit(V_rms, R, L, C, f)`
+Determines total impedance, phase angle and branch currents for a parallel RLC circuit.
+Both inductance and capacitance must be greater than zero.
+
+## Building an Executable
+
+To create a standalone Windows executable for the GUI, install the optional build dependencies and run the helper script:
+
+```bash
+pip install .[build]
+python build_exe.py
+```
+
+The resulting `rc_rl_calculator.exe` will be placed inside the `dist` directory
+and launched automatically.
 
 ## Contributing
 Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for
