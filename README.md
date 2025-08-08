@@ -13,11 +13,7 @@ A Python GUI application for exploring series **RL** (resistor–inductor) and *
 ## Running the GUI
 Launch the calculator with:
 ```bash
-python main.py
-```
-Alternatively use the module form:
-```bash
-python -m RC-and-RL-Calculator
+python -m rc_rl_calculator
 ```
 
 ### GUI Usage

@@ -1,11 +1,11 @@
 import tkinter as tk
-from gui.app import ACCircuitSolverApp
+from .gui.app import ACCircuitSolverApp
 
 
 def main() -> None:
     """Launch the AC Circuit Solver GUI."""
     root = tk.Tk()
-    app = ACCircuitSolverApp(root)
+    _app = ACCircuitSolverApp(root)
     root.mainloop()
 
 
