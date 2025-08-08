@@ -15,9 +15,9 @@ Launch the calculator with:
 ```bash
 python main.py
 ```
-Alternatively use the module form:
+Alternatively, use the module form:
 ```bash
-python -m RC-and-RL-Calculator
+python -m rc_rl_calculator
 ```
 
 ### GUI Usage
@@ -26,6 +26,20 @@ python -m RC-and-RL-Calculator
 3. Provide any two of component value (L or C), reactance (X_L or X_C), or frequency.
 4. Click **Compute** to calculate derived values such as impedance, phase angle, current and voltages.
 5. Use **Plot Waveforms** or **Plot Phasors** to visualise the circuit behaviour.
+
+## Command Line Interface (planned)
+Run the module directly to launch the application:
+
+```bash
+python -m rc_rl_calculator
+```
+
+Command-line flags for performing calculations without the GUI are planned for a
+future release, e.g.:
+
+```bash
+python -m rc_rl_calculator --help
+```
 
 ## Core Functions
 ### `calculate_derived_reactance_params(component_val, reactance_val, omega, param_type)`
