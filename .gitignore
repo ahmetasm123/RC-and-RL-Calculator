@@ -172,3 +172,8 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Platform-specific artifacts
+.DS_Store
+Thumbs.db
+Desktop.ini
