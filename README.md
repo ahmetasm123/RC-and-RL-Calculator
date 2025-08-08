@@ -1,5 +1,7 @@
 # RC and RL Calculator
 
+[![codecov](https://codecov.io/gh/OWNER/RC-and-RL-Calculator/branch/main/graph/badge.svg)](https://codecov.io/gh/OWNER/RC-and-RL-Calculator)
+
 A Python GUI and CLI application for exploring series **RL** (resistor–inductor) and **RC** (resistor–capacitor) circuits. It computes key electrical parameters and can plot voltage/current waveforms and phasor diagrams.
 
 ## Installation

@@ -30,4 +30,4 @@ select = ["E", "F"]
 ignore = ["E501"]
 
 [tool.pytest.ini_options]
-addopts = "--cov=rc_rl_calculator.core --cov=rc_rl_calculator.gui"
+addopts = "--cov=rc_rl_calculator.cli --cov=rc_rl_calculator.core --cov-report=term-missing --cov-report=xml --cov-fail-under=65"
