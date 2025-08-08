@@ -1,3 +1,23 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rc-rl-calculator"
+version = "0.1.0"
+description = "RC and RL circuit calculator"
+authors = [{ name = "RC-RL Calculator Team" }]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy",
+    "matplotlib",
+    "tk",
+]
+
+[project.scripts]
+"rc-rl-calc" = "rc_rl_calculator.cli:main"
+
 [tool.black]
 line-length = 88
 target-version = ["py311"]
