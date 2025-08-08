@@ -11,10 +11,41 @@ def calculate_derived_reactance_params(
     omega: Optional[float],
     param_type: str  # 'L' or 'C'
 ) -> Tuple[Optional[float], Optional[float], Optional[float]]:
-    """Calculate missing reactance-related parameter for RL or RC circuits.
+    """Derive the missing reactance parameter for RL or RC circuits.
 
-    Given two of component value, reactance magnitude, or angular frequency,
-    derive the third while performing basic consistency checks.
+    The routine implements the relationships :math:`X_L = ω L` and
+    :math:`X_C = 1/(ω C)` to compute whichever quantity is absent from the
+    input.  At least two of ``component_val``, ``reactance_val`` and ``omega``
+    must be supplied.  The function performs extensive validation: negative
+    numbers are rejected, zero and infinite reactances are handled explicitly
+    (e.g. a capacitor at DC is treated as an open circuit), and all derived
+    values are cross‑checked for internal consistency.
+
+    Parameters
+    ----------
+    component_val : Optional[float]
+        Inductance in henries for RL circuits or capacitance in farads for RC
+        circuits.  ``None`` if the value is unknown and should be calculated.
+    reactance_val : Optional[float]
+        Magnitude of the reactance (``X_L`` or ``X_C``) in ohms.  ``None`` if
+        unknown.
+    omega : Optional[float]
+        Angular frequency in radians per second.  ``None`` if unknown.
+    param_type : str
+        ``'L'`` to treat the component as an inductor or ``'C'`` for a
+        capacitor.
+
+    Returns
+    -------
+    Tuple[Optional[float], Optional[float], Optional[float]]
+        A tuple ``(component_val, reactance_val, omega)`` with the missing
+        element filled in whenever it can be determined.
+
+    Raises
+    ------
+    ValueError
+        If inputs are negative, mathematically inconsistent or would require a
+        division by zero to compute.
     """
     if component_val is not None and component_val < 0:
         raise ValueError(f"{param_type} cannot be negative.")
@@ -139,7 +170,47 @@ def calculate_series_ac_circuit(
     f: Optional[float],
     circuit_type: str,
 ) -> Dict[str, Optional[float]]:
-    """Calculate parameters for a series RL or RC AC circuit."""
+    """Solve a series RL or RC circuit and return its key parameters.
+
+    The function expects the RMS supply voltage and resistance together with
+    any two of component value, reactance magnitude and frequency.  Missing
+    values are derived by :func:`calculate_derived_reactance_params` using the
+    appropriate reactance relationship for inductors or capacitors.  After the
+    component parameters are resolved the routine computes impedance, phase
+    angle, currents and voltage drops.  Numerous validation steps guard against
+    negative inputs, inconsistent combinations and special cases such as a
+    capacitor acting as an open circuit at DC.
+
+    Parameters
+    ----------
+    V_rms : float
+        Source voltage in volts RMS.
+    R : float
+        Resistance in ohms.
+    component_val : Optional[float]
+        Inductance (henries) for an RL circuit or capacitance (farads) for an
+        RC circuit.
+    reactance_val : Optional[float]
+        Reactance magnitude ``X_L`` or ``X_C`` in ohms.
+    f : Optional[float]
+        Frequency in hertz.
+    circuit_type : str
+        ``'RL'`` for resistor–inductor circuits or ``'RC'`` for
+        resistor–capacitor circuits.
+
+    Returns
+    -------
+    Dict[str, Optional[float]]
+        Mapping of calculated circuit attributes including impedance ``Z``,
+        phase angle ``phi``, current and component voltages.  Inputs are echoed
+        back alongside derived values.
+
+    Raises
+    ------
+    ValueError
+        If provided values are negative, insufficient to perform the
+        calculation or mutually inconsistent.
+    """
     if V_rms < 0:
         raise ValueError("V RMS must be non-negative.")
     if R < 0:
