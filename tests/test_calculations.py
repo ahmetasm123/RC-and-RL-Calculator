@@ -97,6 +97,20 @@ def test_parallel_rlc_basic(approx_cmp):
     assert result["phi"] == approx_cmp(-80.7259, rel=1e-4)
 
 
+def test_parallel_rlc_zero_inductance_short():
+    result = calculate_parallel_rlc_circuit(5.0, 10.0, 0.0, 1e-6, 1000.0)
+    assert result["Z"] == 0.0
+    assert result["I_rms"] == float("inf")
+    assert result["I_rms_L"] == float("inf")
+
+
+def test_parallel_rlc_zero_resistance_short():
+    result = calculate_parallel_rlc_circuit(5.0, 0.0, 0.1, 1e-6, 1000.0)
+    assert result["Z"] == 0.0
+    assert result["I_rms"] == float("inf")
+    assert result["I_rms_R"] == float("inf")
+
+
 # Tests for equivalent capacitance and inductance
 
 
