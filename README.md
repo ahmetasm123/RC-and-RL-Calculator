@@ -45,6 +45,16 @@ Example calculation for a series RC circuit:
 rc-rl-calc --voltage 120 --resistance 100 --component 1e-6 --frequency 60 --circuit RC
 ```
 
+## Examples
+
+Example scripts demonstrating the library are available in the
+[`examples/`](examples) directory. Run the basic RC circuit example with:
+
+```bash
+python examples/basic_rc_circuit.py
+```
+
+
 ## Core Functions
 ### `calculate_derived_reactance_params(component_val, reactance_val, omega, param_type)`
 Derives the missing value among component magnitude, reactance and angular frequency for an RL or RC circuit, performing consistency checks on the inputs. Returns a tuple `(component, reactance, omega)`.
