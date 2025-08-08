@@ -1,5 +1,6 @@
 import math
 from typing import Dict, Optional, Tuple
+import cmath
 
 SQRT_2 = math.sqrt(2)
 TWO_PI = 2 * math.pi
@@ -320,3 +321,132 @@ def calculate_series_ac_circuit(
         "_input_f": f,
     }
     return results
+
+
+def calculate_series_rlc_circuit(
+    V_rms: float,
+    R: float,
+    L: float,
+    C: float,
+    f: float,
+) -> Dict[str, float]:
+    """Compute parameters for a series RLC circuit.
+
+    Parameters
+    ----------
+    V_rms : float
+        Source voltage in volts RMS.
+    R : float
+        Resistance in ohms.
+    L : float
+        Inductance in henries.
+    C : float
+        Capacitance in farads.
+    f : float
+        Frequency in hertz.
+    """
+
+    if any(x < 0 for x in [V_rms, R, L, C, f]):
+        raise ValueError("All parameters must be non-negative.")
+    if any(x <= 0 for x in [L, C, f]):
+        raise ValueError(
+            "Inductance, capacitance and frequency must be greater than zero for RLC analysis."
+        )
+
+    omega = TWO_PI * f
+    X_L = omega * L
+    X_C = 1.0 / (omega * C)
+    X = X_L - X_C
+    Z = math.hypot(R, X)
+    phi = math.degrees(math.atan2(X, R))
+    if Z == 0:
+        I_rms = float("inf") if V_rms > 0 else 0.0
+    else:
+        I_rms = V_rms / Z
+    V_rms_R = I_rms * R if I_rms != float("inf") else float("inf")
+    V_rms_L = I_rms * X_L if I_rms != float("inf") else float("inf")
+    V_rms_C = I_rms * X_C if I_rms != float("inf") else float("inf")
+    V_peak = V_rms * SQRT_2
+    I_peak = I_rms * SQRT_2 if I_rms != float("inf") else float("inf")
+
+    return {
+        "V_rms": V_rms,
+        "R": R,
+        "L": L,
+        "C": C,
+        "f": f,
+        "omega": omega,
+        "X_L": X_L,
+        "X_C": X_C,
+        "X": X,
+        "Z": Z,
+        "phi": phi,
+        "I_rms": I_rms,
+        "I_peak": I_peak,
+        "V_rms_R": V_rms_R,
+        "V_rms_L": V_rms_L,
+        "V_rms_C": V_rms_C,
+        "V_peak": V_peak,
+    }
+
+
+def calculate_parallel_rlc_circuit(
+    V_rms: float,
+    R: float,
+    L: float,
+    C: float,
+    f: float,
+) -> Dict[str, float]:
+    """Compute parameters for a parallel RLC circuit."""
+
+    if any(x < 0 for x in [V_rms, R, L, C, f]):
+        raise ValueError("All parameters must be non-negative.")
+    if any(x <= 0 for x in [L, C, f]):
+        raise ValueError(
+            "Inductance, capacitance and frequency must be greater than zero for RLC analysis."
+        )
+
+    omega = TWO_PI * f
+    X_L = omega * L
+    X_C = 1.0 / (omega * C)
+
+    Z_R = complex(R, 0)
+    Z_L = complex(0, X_L)
+    Z_C = complex(0, -X_C)
+    Y_total = 1 / Z_R + 1 / Z_L + 1 / Z_C
+    if Y_total == 0:
+        Z_total = complex(float("inf"))
+    else:
+        Z_total = 1 / Y_total
+    Z = abs(Z_total)
+    phi = math.degrees(cmath.phase(Z_total))
+
+    if Z == 0:
+        I_rms = float("inf") if V_rms > 0 else 0.0
+    else:
+        I_rms = V_rms / Z
+
+    I_rms_R = V_rms / R if R != 0 else float("inf")
+    I_rms_L = V_rms / X_L if X_L != 0 else float("inf")
+    I_rms_C = V_rms / X_C if X_C != 0 else float("inf")
+    V_peak = V_rms * SQRT_2
+    I_peak = I_rms * SQRT_2 if I_rms != float("inf") else float("inf")
+
+    return {
+        "V_rms": V_rms,
+        "R": R,
+        "L": L,
+        "C": C,
+        "f": f,
+        "omega": omega,
+        "X_L": X_L,
+        "X_C": X_C,
+        "Z": Z,
+        "phi": phi,
+        "I_rms": I_rms,
+        "I_peak": I_peak,
+        "I_rms_R": I_rms_R,
+        "I_rms_L": I_rms_L,
+        "I_rms_C": I_rms_C,
+        "V_peak": V_peak,
+    }
