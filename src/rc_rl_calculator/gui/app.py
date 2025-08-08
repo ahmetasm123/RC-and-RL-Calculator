@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import tkinter as tk
 from tkinter import messagebox, scrolledtext
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Tuple
 
 import ttkbootstrap as ttkb
 from ttkbootstrap import ttk
@@ -30,146 +30,199 @@ UNIT_FACTORS = {
 
 
 # --- Plotting ---
-def plot_waveforms(params: Dict[str, Optional[float]], circuit_type: str):
+
+# Plotting helpers for the GUI. Heavy validation and computation are moved
+# to pure functions so they can be unit-tested without a GUI environment.
+
+
+def compute_waveform_data(
+    params: Dict[str, Optional[float]],
+    circuit_type: str,
+) -> Tuple[Dict[str, np.ndarray], Optional[str]]:
+    """Validate inputs and compute waveform arrays.
+
+    Returns a dictionary with time vector and waveforms. An optional message is
+    returned which callers may display to the user.
     """
-    Plot voltage and current waveforms for the given circuit parameters.
-    (Implementation details omitted for brevity - assume it's the same as the previous working version)
-    """
-    # --- Check for necessary parameters ---
+
     required_keys_ac = ["omega", "phi", "I_peak", "V_peak", "R", "X", "f"]
     required_keys_dc = ["V_rms", "I_rms", "V_rms_R", "V_rms_X", "f"]
 
     is_dc = params.get("f") is not None and math.isclose(params["f"], 0)
 
     if is_dc:
-        missing = [key for key in required_keys_dc if params.get(key) is None]
+        missing = [k for k in required_keys_dc if params.get(k) is None]
         if missing:
             raise ValueError(
                 f'Missing required parameters for DC plotting: {", ".join(missing)}'
             )
-    else:  # AC case
-        missing = [key for key in required_keys_ac if params.get(key) is None]
+    else:
+        missing = [k for k in required_keys_ac if params.get(k) is None]
         if missing:
             raise ValueError(
                 f'Missing required parameters for AC plotting: {", ".join(missing)}'
             )
-        if params.get("omega", 0) <= 0:  # Check omega specifically for AC
+        if params.get("omega", 0) <= 0:
             raise ValueError(
                 "Cannot plot AC waveform without a positive angular frequency (omega)."
             )
 
-    phi_rad = math.radians(params["phi"])  # Phase angle of impedance Z
+    if params.get("Z") == float("inf"):
+        raise ValueError(
+            "Cannot plot waveforms for open circuit (infinite impedance, zero current)."
+        )
+    if params.get("I_peak") == float("inf"):
+        raise ValueError("Cannot plot waveforms for short circuit (infinite current).")
+
+    if is_dc:
+        t = np.linspace(0, 1, 2)
+        data = {
+            "t": t,
+            "v_s": np.full_like(t, params["V_rms"]),
+            "i": np.full_like(t, params["I_rms"]),
+            "v_R": np.full_like(t, params["V_rms_R"]),
+            "v_X": np.full_like(t, params["V_rms_X"]),
+            "is_dc": True,
+            "f": params["f"],
+        }
+        return data, "Plotting waveforms for DC (0 Hz). Showing constant values."
+
+    phi_rad = math.radians(params["phi"])
     I_peak = params["I_peak"]
     V_peak = params["V_peak"]
     R = params["R"]
-    X = params["X"]  # Magnitude of reactance
+    X = params["X"]
 
-    # --- Handle edge cases before plotting ---
-    if params.get("Z") == float("inf"):
-        messagebox.showinfo(
-            "Plot Info",
-            "Cannot plot waveforms for open circuit (infinite impedance, zero current).",
-        )
-        return
-    if I_peak == float("inf"):
-        messagebox.showinfo(
-            "Plot Info", "Cannot plot waveforms for short circuit (infinite current)."
-        )
-        return
+    info = None
     if V_peak == 0 and I_peak == 0:
-        messagebox.showinfo(
-            "Plot Info", "Input voltage is zero, waveforms are all zero."
+        info = "Input voltage is zero, waveforms are all zero."
+
+    omega = params["omega"]
+    f_val = params["f"]
+    T = 1.0 / f_val
+    t = np.linspace(0, 2 * T, 500)
+
+    v_s = V_peak * np.sin(omega * t)
+    i = I_peak * np.sin(omega * t - phi_rad)
+    v_R = R * i
+    phase_shift = PI_OVER_2 if circuit_type == "RL" else -PI_OVER_2
+    v_X = X * I_peak * np.sin(omega * t - phi_rad + phase_shift)
+
+    data = {
+        "t": t,
+        "v_s": v_s,
+        "i": i,
+        "v_R": v_R,
+        "v_X": v_X,
+        "is_dc": False,
+        "f": f_val,
+    }
+    return data, info
+
+
+def compute_phasor_data(
+    params: Dict[str, Optional[float]],
+    circuit_type: str,
+) -> Dict[str, Tuple[float, float]]:
+    """Validate inputs and compute phasor magnitudes and angles."""
+
+    required_keys = ["V_rms", "I_rms", "V_rms_R", "V_rms_X", "phi", "f"]
+    missing = [k for k in required_keys if params.get(k) is None]
+    if missing:
+        raise ValueError(
+            f'Missing required parameters for phasor plot: {", ".join(missing)}'
         )
+
+    f_val = params["f"]
+    if f_val is not None and math.isclose(f_val, 0):
+        raise ValueError("Phasor diagrams are typically used for AC circuits (f > 0).")
+
+    if params.get("Z") == float("inf") or params.get("I_rms") == float("inf"):
+        raise ValueError("Cannot plot phasors for open or short circuits.")
+
+    v_s_mag = params["V_rms"]
+    i_mag = params["I_rms"]
+    v_r_mag = params["V_rms_R"]
+    v_x_mag = params["V_rms_X"]
+    phi_impedance_deg = params["phi"]
+
+    v_s_angle_deg = 0.0
+    i_angle_deg = -phi_impedance_deg
+    v_r_angle_deg = i_angle_deg
+    v_x_angle_deg = i_angle_deg + 90.0 if circuit_type == "RL" else i_angle_deg - 90.0
+
+    return {
+        "V_S": (v_s_mag, math.radians(v_s_angle_deg)),
+        "I": (i_mag, math.radians(i_angle_deg)),
+        "V_R": (v_r_mag, math.radians(v_r_angle_deg)),
+        f"V_{circuit_type[1]}": (v_x_mag, math.radians(v_x_angle_deg)),
+    }
+
+
+def plot_waveforms(params: Dict[str, Optional[float]], circuit_type: str):
+    """Render waveforms using :func:`compute_waveform_data`."""
+    try:
+        data, info = compute_waveform_data(params, circuit_type)
+    except ValueError as exc:  # pragma: no cover - GUI side-effect
+        messagebox.showinfo("Plot Info", str(exc))
+        return
+
+    if info:  # pragma: no cover - GUI side-effect
+        messagebox.showinfo("Plot Info", info)
+
+    if data.get("is_dc"):
+        t = data["t"]
+        v_s = data["v_s"]
+        i = data["i"]
+        v_R = data["v_R"]
+        v_X = data["v_X"]
+        plt.figure(figsize=(10, 6))
+        plt.plot(t, v_s, label=f"Source Voltage = {v_s[0]:.4g} V", marker=".")
+        plt.plot(t, i, label=f"Circuit Current = {i[0]:.4g} A", marker=".")
+        plt.plot(t, v_R, label=f"Voltage across R = {v_R[0]:.4g} V", marker=".")
+        comp_label = "L (Short)" if circuit_type == "RL" else "C (Open)"
+        plt.plot(
+            t, v_X, label=f"Voltage across {comp_label} = {v_X[0]:.4g} V", marker="."
+        )
+        plt.xlabel("Time (arbitrary)")
+        plt.ylabel("Amplitude (V or A)")
+        plt.title(f"{circuit_type} Circuit DC Conditions (f=0 Hz)")
+        plt.legend()
+        plt.grid(True)
+        all_vals = [v for v in [v_s[0], i[0], v_R[0], v_X[0]] if not math.isinf(v)]
+        min_val = min(all_vals + [0]) if all_vals else 0
+        max_val = max(all_vals + [0]) if all_vals else 0.1
+        margin = abs(max_val - min_val) * 0.1 + 0.1
+        plt.ylim(min_val - margin, max_val + margin)
+        plt.tight_layout()
+        plt.show()
+        return
+
+    if info == "Input voltage is zero, waveforms are all zero.":
         plt.figure(figsize=(10, 6))
         plt.axhline(0, color="black", linewidth=0.8)
         plt.title(f"{circuit_type} Circuit - Zero Input")
         plt.xlabel("Time (s)")
         plt.ylabel("Amplitude (V or A)")
         plt.grid(True)
-        plt.ylim(-1, 1)  # Set some minimal y-limits
+        plt.ylim(-1, 1)
         plt.show()
         return
 
-    # --- Handle DC case (f=0) ---
-    if is_dc:
-        messagebox.showinfo(
-            "Plot Info", "Plotting waveforms for DC (0 Hz). Showing constant values."
-        )
-        t = np.linspace(0, 1, 2)  # Simple time vector for DC plot
-        # Use RMS values directly for DC representation
-        v_s_val = params["V_rms"]
-        i_val = params["I_rms"]
-        vr_val = params["V_rms_R"]
-        vx_val = params["V_rms_X"]
+    t = data["t"]
+    v_s = data["v_s"]
+    i = data["i"]
+    v_R = data["v_R"]
+    v_X = data["v_X"]
+    f_val = data["f"]
 
-        plt.figure(figsize=(10, 6))
-        plt.plot(
-            t,
-            np.full_like(t, v_s_val),
-            label=f"Source Voltage = {v_s_val:.4g} V",
-            marker=".",
-        )
-        plt.plot(
-            t,
-            np.full_like(t, i_val),
-            label=f"Circuit Current = {i_val:.4g} A",
-            marker=".",
-        )
-        plt.plot(
-            t,
-            np.full_like(t, vr_val),
-            label=f"Voltage across R = {vr_val:.4g} V",
-            marker=".",
-        )
-        comp_label = "L (Short)" if circuit_type == "RL" else "C (Open)"
-        plt.plot(
-            t,
-            np.full_like(t, vx_val),
-            label=f"Voltage across {comp_label} = {vx_val:.4g} V",
-            marker=".",
-        )
-
-        plt.xlabel("Time (arbitrary)")
-        plt.ylabel("Amplitude (V or A)")
-        plt.title(f"{circuit_type} Circuit DC Conditions (f=0 Hz)")
-        plt.legend()
-        plt.grid(True)
-        # Adjust y-limits to show values clearly
-        all_vals = [
-            v
-            for v in [v_s_val, i_val, vr_val, vx_val]
-            if v is not None and not math.isinf(v)
-        ]
-        min_val = min(all_vals + [0]) if all_vals else 0  # Include 0
-        max_val = max(all_vals + [0]) if all_vals else 0.1  # Include 0
-        margin = abs(max_val - min_val) * 0.1 + 0.1  # Add margin, ensure positive
-        plt.ylim(min_val - margin, max_val + margin)
-        plt.tight_layout()
-        plt.show()
-        return
-
-    # --- AC Plotting ---
-    omega = params["omega"]
-    f_val = params["f"]
-    T = 1.0 / f_val  # Period
-    t = np.linspace(0, 2 * T, 500)  # Time vector for 2 cycles
-
-    # Waveforms:
-    v_s = V_peak * np.sin(omega * t)
-    i = I_peak * np.sin(omega * t - phi_rad)
-    v_R = R * i
-    phase_shift_X_rel_current = PI_OVER_2 if circuit_type == "RL" else -PI_OVER_2
-    v_X = X * I_peak * np.sin(omega * t - phi_rad + phase_shift_X_rel_current)
-
-    # --- Create Plot ---
     try:
-        plt.style.use("seaborn-v0_8-darkgrid")  # Use a pleasant style
-    except OSError:
-        print("Seaborn style not found, using default.")  # Fallback style
+        plt.style.use("seaborn-v0_8-darkgrid")
+    except OSError:  # pragma: no cover
+        print("Seaborn style not found, using default.")
         plt.style.use("default")
 
     plt.figure(figsize=(10, 6))
-
     plt.plot(t, v_s, label="Source Voltage ($V_S$)", linewidth=1.5)
     plt.plot(t, i, label="Circuit Current ($I$)", linewidth=1.5, linestyle="--")
     plt.plot(t, v_R, label="Voltage across R ($V_R$)", linewidth=1.2)
@@ -177,100 +230,43 @@ def plot_waveforms(params: Dict[str, Optional[float]], circuit_type: str):
     plt.plot(
         t, v_X, label=f"Voltage across {comp_label} ($V_{comp_label}$)", linewidth=1.2
     )
-
     plt.xlabel("Time (s)")
     plt.ylabel("Amplitude (V or A)")
-    freq_str = f"{f_val:.4g}"
-    plt.title(f"{circuit_type} Circuit Waveforms (f = {freq_str} Hz)")
+    plt.title(f"{circuit_type} Circuit Waveforms (f = {f_val:.4g} Hz)")
     plt.legend(loc="best")
     plt.grid(True)
     plt.axhline(0, color="black", linewidth=0.5)
-    plt.xlim(0, 2 * T)
+    plt.xlim(t[0], t[-1])
     plt.tight_layout()
     plt.show()
 
 
 def plot_phasors(params: Dict[str, Optional[float]], circuit_type: str):
-    """
-    Plots the phasor diagram for V_S, I, V_R, V_X.
-
-    Args:
-        params: Dictionary of calculated circuit parameters.
-        circuit_type: 'RL' or 'RC'.
-
-    Raises:
-        ValueError: If essential parameters for plotting are missing or invalid.
-    """
-    # --- Check for necessary parameters ---
-    required_keys = ["V_rms", "I_rms", "V_rms_R", "V_rms_X", "phi", "f"]
-    missing = [key for key in required_keys if params.get(key) is None]
-    if missing:
-        raise ValueError(
-            f'Missing required parameters for phasor plot: {", ".join(missing)}'
-        )
-
-    # Phasors are generally not meaningful for DC (f=0)
-    f_val = params["f"]
-    if f_val is not None and math.isclose(f_val, 0):
-        messagebox.showinfo(
-            "Phasor Plot Info",
-            "Phasor diagrams are typically used for AC circuits (f > 0).",
-        )
+    """Render phasor diagram using :func:`compute_phasor_data`."""
+    try:
+        phasors = compute_phasor_data(params, circuit_type)
+    except ValueError as exc:  # pragma: no cover - GUI side-effect
+        messagebox.showinfo("Phasor Plot Info", str(exc))
         return
 
-    # Check for infinite impedance/current
-    if params.get("Z") == float("inf") or params.get("I_rms") == float("inf"):
-        messagebox.showinfo(
-            "Phasor Plot Info", "Cannot plot phasors for open or short circuits."
-        )
-        return
-
-    # --- Get Magnitudes and Angles ---
-    v_s_mag = params["V_rms"]
-    i_mag = params["I_rms"]
-    v_r_mag = params["V_rms_R"]
-    v_x_mag = params["V_rms_X"]
-    phi_impedance_deg = params["phi"]  # Angle of Z (V leads I by this)
-
-    # Angles (in degrees, relative to V_S which is at 0 degrees)
-    v_s_angle_deg = 0.0
-    i_angle_deg = -phi_impedance_deg  # Current lags V_S by phi
-    v_r_angle_deg = i_angle_deg  # V_R is in phase with I
-    # V_L leads I by 90 deg, V_C lags I by 90 deg
-    v_x_angle_deg = i_angle_deg + 90.0 if circuit_type == "RL" else i_angle_deg - 90.0
-
-    # Convert angles to radians for plotting functions
-    v_s_angle_rad = math.radians(v_s_angle_deg)
-    i_angle_rad = math.radians(i_angle_deg)
-    v_r_angle_rad = math.radians(v_r_angle_deg)
-    v_x_angle_rad = math.radians(v_x_angle_deg)
-
-    # --- Prepare Plot ---
     fig, ax = plt.subplots(figsize=(7, 7))
-    ax.set_aspect("equal")  # Ensure angles look correct
+    ax.set_aspect("equal")
     ax.grid(True)
     ax.set_title(f"{circuit_type} Circuit Phasor Diagram (RMS Values)")
     ax.set_xlabel("Real Axis")
     ax.set_ylabel("Imaginary Axis")
 
-    # --- Plot Phasors using quiver ---
-    # quiver(x_pos, y_pos, x_dir, y_dir, angles='xy', scale_units='xy', scale=1)
-    phasors = {
-        "V_S": (v_s_mag, v_s_angle_rad, "red", 2),
-        "I": (i_mag, i_angle_rad, "blue", 1.5),
-        "V_R": (v_r_mag, v_r_angle_rad, "green", 1.5),
-        f"V_{circuit_type[1]}": (v_x_mag, v_x_angle_rad, "purple", 1.5),  # V_L or V_C
-    }
-
-    max_val = 0  # To scale plot limits
-
-    for label, (mag, angle_rad, color, width) in phasors.items():
-        if mag > max_val:
-            max_val = mag
-        # Calculate endpoint components
+    max_val = 0
+    for label, (mag, angle_rad) in phasors.items():
+        max_val = max(max_val, mag)
         x_end = mag * math.cos(angle_rad)
         y_end = mag * math.sin(angle_rad)
-        # Plot arrow from origin
+        color = (
+            "red"
+            if label == "V_S"
+            else "blue" if label == "I" else "green" if label == "V_R" else "purple"
+        )
+        width = 0.005 * (2 if label == "V_S" else 1.5)
         ax.quiver(
             0,
             0,
@@ -280,21 +276,15 @@ def plot_phasors(params: Dict[str, Optional[float]], circuit_type: str):
             scale_units="xy",
             scale=1,
             color=color,
-            width=0.005 * width,
+            width=width,
             label=f"{label} ({mag:.3g})",
         )
 
-        # Add text label near the arrowhead (optional)
-        # label_pos_factor = 1.1
-        # ax.text(x_end * label_pos_factor, y_end * label_pos_factor, label, color=color, ha='center', va='center')
-
-    # --- Set Plot Limits ---
-    limit = max_val * 1.3  # Add some padding
+    limit = max_val * 1.3
     ax.set_xlim(-limit, limit)
     ax.set_ylim(-limit, limit)
     ax.axhline(0, color="black", linewidth=0.5)
     ax.axvline(0, color="black", linewidth=0.5)
-
     ax.legend(loc="best")
     plt.tight_layout()
     plt.show()
@@ -744,7 +734,8 @@ class ACCircuitSolverApp:
         circuit_type = self.circuit_var.get()
         if circuit_type not in {"RL", "RC"}:
             self.text_calc_steps.insert(
-                tk.END, "Detailed calculation steps for RLC circuits are not yet available."
+                tk.END,
+                "Detailed calculation steps for RLC circuits are not yet available.",
             )
             self.text_calc_steps.config(state=tk.DISABLED)
             return
@@ -994,17 +985,13 @@ class ACCircuitSolverApp:
                     raise ValueError(
                         "L, C, and frequency are required for RLC calculations."
                     )
-                self.calc_params = calculate_series_rlc_circuit(
-                    V_rms, R, L, C, f
-                )
+                self.calc_params = calculate_series_rlc_circuit(V_rms, R, L, C, f)
             else:  # RLC_PARALLEL
                 if None in (L, C, f):
                     raise ValueError(
                         "L, C, and frequency are required for RLC calculations."
                     )
-                self.calc_params = calculate_parallel_rlc_circuit(
-                    V_rms, R, L, C, f
-                )
+                self.calc_params = calculate_parallel_rlc_circuit(V_rms, R, L, C, f)
 
         except ValueError as e:
             messagebox.showerror("Input / Calculation Error", str(e))
@@ -1128,10 +1115,9 @@ class ACCircuitSolverApp:
 
         # --- Enable Plot Buttons ---
         f_val = self.calc_params.get("f")
-        no_inf = (
-            self.calc_params.get("Z") != float("inf")
-            and self.calc_params.get("I_rms") != float("inf")
-        )
+        no_inf = self.calc_params.get("Z") != float("inf") and self.calc_params.get(
+            "I_rms"
+        ) != float("inf")
         circuit_type = self.circuit_var.get()
         if circuit_type in {"RL", "RC"}:
             is_dc = f_val is not None and math.isclose(f_val, 0)
@@ -1148,7 +1134,7 @@ class ACCircuitSolverApp:
             self.btn_plot_wave.config(state=tk.DISABLED)
             self.btn_plot_phasor.config(state=tk.DISABLED)
 
-        if (not no_inf and self.calc_params):
+        if not no_inf and self.calc_params:
             self.status_var.set("Calculation Complete (Open/Short Circuit).")
 
     # --- Plot Action Methods ---
