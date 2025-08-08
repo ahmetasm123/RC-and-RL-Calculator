@@ -91,3 +91,24 @@ def test_cli_rlc_parallel_matches_calculation(capsys):
     expected = calculate_parallel_rlc_circuit(10.0, 100.0, 0.1, 1e-5, 1000.0)
     assert cli_result["Z"] == pytest.approx(expected["Z"])
     assert cli_result["phi"] == pytest.approx(expected["phi"])
+
+
+def test_cli_invalid_parameters_exit_code_and_message(capsys):
+    argv = [
+        "--voltage",
+        "10",
+        "--resistance",
+        "-5",
+        "--component",
+        "1e-6",
+        "--frequency",
+        "1000",
+        "--circuit",
+        "RC",
+    ]
+    with pytest.raises(SystemExit) as exc:
+        main(argv)
+    assert exc.value.code != 0
+    captured = capsys.readouterr()
+    assert "Resistance (R) must be non-negative." in captured.err
+    assert captured.out == ""

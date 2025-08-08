@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 from typing import Iterable, Optional
+import sys
 
 from rc_rl_calculator.core.calculations import (
     calculate_parallel_rlc_circuit,
@@ -71,43 +72,47 @@ def main(argv: Optional[Iterable[str]] = None) -> None:
     parser = build_parser()
     args = parser.parse_args(argv)
 
-    if args.circuit in {"RL", "RC"}:
-        result = calculate_series_ac_circuit(
-            V_rms=args.voltage,
-            R=args.resistance,
-            component_val=args.component,
-            reactance_val=args.reactance,
-            f=args.frequency,
-            circuit_type=args.circuit,
-        )
-    else:
-        if (
-            args.inductance is None
-            or args.capacitance is None
-            or args.frequency is None
-        ):
-            parser.error(
-                "--inductance, --capacitance and --frequency are required for RLC circuits"
-            )
-        if args.circuit == "RLC_SERIES":
-            result = calculate_series_rlc_circuit(
+    try:
+        if args.circuit in {"RL", "RC"}:
+            result = calculate_series_ac_circuit(
                 V_rms=args.voltage,
                 R=args.resistance,
-                L=args.inductance,
-                C=args.capacitance,
+                component_val=args.component,
+                reactance_val=args.reactance,
                 f=args.frequency,
+                circuit_type=args.circuit,
             )
         else:
-            result = calculate_parallel_rlc_circuit(
-                V_rms=args.voltage,
-                R=args.resistance,
-                L=args.inductance,
-                C=args.capacitance,
-                f=args.frequency,
-            )
+            if (
+                args.inductance is None
+                or args.capacitance is None
+                or args.frequency is None
+            ):
+                parser.error(
+                    "--inductance, --capacitance and --frequency are required for RLC circuits"
+                )
+            if args.circuit == "RLC_SERIES":
+                result = calculate_series_rlc_circuit(
+                    V_rms=args.voltage,
+                    R=args.resistance,
+                    L=args.inductance,
+                    C=args.capacitance,
+                    f=args.frequency,
+                )
+            else:
+                result = calculate_parallel_rlc_circuit(
+                    V_rms=args.voltage,
+                    R=args.resistance,
+                    L=args.inductance,
+                    C=args.capacitance,
+                    f=args.frequency,
+                )
 
-    for key, value in result.items():
-        print(f"{key}: {value}")
+        for key, value in result.items():
+            print(f"{key}: {value}")
+    except ValueError as exc:
+        print(exc, file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":  # pragma: no cover - CLI entry point
