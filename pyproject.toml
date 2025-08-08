@@ -15,6 +15,9 @@ dependencies = [
     "ttkbootstrap",
 ]
 
+[project.optional-dependencies]
+build = ["pyinstaller"]
+
 [project.scripts]
 "rc-rl-calc" = "rc_rl_calculator.cli:main"
 "rc-rl-gui" = "rc_rl_calculator.main:main"
