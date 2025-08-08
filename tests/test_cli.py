@@ -1,11 +1,6 @@
 import json
-import os
-import sys
 
 import pytest
-
-# Ensure the package root is on sys.path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from rc_rl_calculator.cli import main
 from rc_rl_calculator.core.calculations import (
