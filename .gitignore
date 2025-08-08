@@ -177,3 +177,6 @@ cython_debug/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Example output images
+examples/screenshots/
