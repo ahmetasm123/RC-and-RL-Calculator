@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 from typing import Iterable, Optional
 
-from core.calculations import calculate_series_ac_circuit
+from rc_rl_calculator.core.calculations import calculate_series_ac_circuit
 
 
 def build_parser() -> argparse.ArgumentParser:

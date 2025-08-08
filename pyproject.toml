@@ -12,7 +12,6 @@ requires-python = ">=3.11"
 dependencies = [
     "numpy",
     "matplotlib",
-    "tk",
 ]
 
 [project.scripts]
