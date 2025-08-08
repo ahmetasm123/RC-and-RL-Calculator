@@ -86,14 +86,17 @@ Determines total impedance, phase angle and branch currents for a parallel RLC c
 
 ## Building an Executable
 
-To create a standalone Windows executable for the GUI, install the optional build dependencies and run the helper script:
+To create a standalone Windows executable for the GUI, install the optional
+build dependencies and run the helper script:
 
 ```bash
 pip install .[build]
 python build_exe.py
 ```
 
-The resulting `rc_rl_calculator.exe` will be placed inside the `dist` directory.
+The script invokes PyInstaller, writes ``rc_rl_calculator.exe`` to the ``dist``
+directory and then automatically launches it. Any build failures or missing
+output files will be reported in the console.
 
 ## Contributing
 Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for
