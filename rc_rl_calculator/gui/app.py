@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext  # Added scrolledtext
 from typing import Dict, Optional, List
-from core.calculations import calculate_series_ac_circuit, PI_OVER_2
+from rc_rl_calculator.core.calculations import calculate_series_ac_circuit, PI_OVER_2
 
 
 # --- Unit Multipliers ---

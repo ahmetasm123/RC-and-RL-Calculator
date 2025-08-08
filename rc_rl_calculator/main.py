@@ -1,5 +1,5 @@
 import tkinter as tk
-from gui.app import ACCircuitSolverApp
+from rc_rl_calculator.gui.app import ACCircuitSolverApp
 
 
 def main() -> None:
