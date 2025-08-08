@@ -34,5 +34,11 @@ Derives the missing value among component magnitude, reactance and angular frequ
 ### `calculate_series_ac_circuit(V_rms, R, component_val, reactance_val, f, circuit_type)`
 Computes parameters for a series RL or RC circuit. Requires the RMS source voltage, resistance and any two of component value, reactance or frequency. Returns a dictionary containing impedance, phase angle, currents and voltages.
 
+## Contributing
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for
+coding standards, testing instructions, and the pull request workflow. By
+participating in this project you agree to abide by our
+[Code of Conduct](CODE_OF_CONDUCT.md).
+
 ## License
 This project is licensed under the [MIT License](LICENSE).
