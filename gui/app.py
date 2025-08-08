@@ -8,7 +8,6 @@ from typing import Dict, Optional, List
 
 from core.calculations import calculate_series_ac_circuit, PI_OVER_2
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
