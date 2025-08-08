@@ -479,6 +479,34 @@ def calculate_parallel_rlc_circuit(
     omega = TWO_PI * f
     X_L = omega * L
     X_C = 1.0 / (omega * C)
+    if R == 0 or L == 0 or X_L == 0:
+        Z_total = complex(0.0, 0.0)
+        Z = 0.0
+        phi = 0.0
+        I_rms = float("inf") if V_rms > 0 else 0.0
+        I_rms_R = float("inf") if R == 0 else V_rms / R
+        I_rms_L = float("inf") if L == 0 or X_L == 0 else V_rms / X_L
+        I_rms_C = V_rms / X_C if X_C != 0 else float("inf")
+        V_peak = V_rms * SQRT_2
+        I_peak = float("inf") if I_rms == float("inf") else I_rms * SQRT_2
+        return {
+            "V_rms": V_rms,
+            "R": R,
+            "L": L,
+            "C": C,
+            "f": f,
+            "omega": omega,
+            "X_L": X_L,
+            "X_C": X_C,
+            "Z": Z,
+            "phi": phi,
+            "I_rms": I_rms,
+            "I_peak": I_peak,
+            "I_rms_R": I_rms_R,
+            "I_rms_L": I_rms_L,
+            "I_rms_C": I_rms_C,
+            "V_peak": V_peak,
+        }
 
     Z_R = complex(R, 0)
     Z_L = complex(0, X_L)
