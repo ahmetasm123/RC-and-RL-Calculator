@@ -3,13 +3,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext  # Added scrolledtext
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Tuple, cast
 from core.calculations import calculate_series_ac_circuit, PI_OVER_2
 
 
 # --- Unit Multipliers ---
 # (Keep UNIT_FACTORS as before)
-UNIT_FACTORS = {
+UNIT_FACTORS: Dict[str, Dict[str, float]] = {
     "V": {"V": 1, "mV": 1e-3, "kV": 1e3},
     "R": {"Ω": 1, "kΩ": 1e3, "MΩ": 1e6},
     "L": {"H": 1, "mH": 1e-3, "µH": 1e-6},
@@ -30,7 +30,9 @@ def plot_waveforms(params: Dict[str, Optional[float]], circuit_type: str):
     required_keys_ac = ["omega", "phi", "I_peak", "V_peak", "R", "X", "f"]
     required_keys_dc = ["V_rms", "I_rms", "V_rms_R", "V_rms_X", "f"]
 
-    is_dc = params.get("f") is not None and math.isclose(params["f"], 0)
+    f_val = params.get("f")
+    is_dc = f_val is not None and math.isclose(f_val, 0.0)
+    I_peak = V_peak = R = X = phi_rad = 0.0  # Initialize for type checking
 
     if is_dc:
         missing = [key for key in required_keys_dc if params.get(key) is None]
@@ -38,36 +40,41 @@ def plot_waveforms(params: Dict[str, Optional[float]], circuit_type: str):
             raise ValueError(
                 f'Missing required parameters for DC plotting: {", ".join(missing)}'
             )
+        v_s_val = cast(float, params["V_rms"])
+        i_val = cast(float, params["I_rms"])
+        vr_val = cast(float, params["V_rms_R"])
+        vx_val = cast(float, params["V_rms_X"])
     else:  # AC case
         missing = [key for key in required_keys_ac if params.get(key) is None]
         if missing:
             raise ValueError(
                 f'Missing required parameters for AC plotting: {", ".join(missing)}'
             )
-        if params.get("omega", 0) <= 0:  # Check omega specifically for AC
+        omega = cast(float, params["omega"])
+        if omega <= 0:
             raise ValueError(
                 "Cannot plot AC waveform without a positive angular frequency (omega)."
             )
-
-    phi_rad = math.radians(params["phi"])  # Phase angle of impedance Z
-    I_peak = params["I_peak"]
-    V_peak = params["V_peak"]
-    R = params["R"]
-    X = params["X"]  # Magnitude of reactance
+        phi_val = cast(float, params["phi"])
+        phi_rad = math.radians(phi_val)
+        I_peak = cast(float, params["I_peak"])
+        V_peak = cast(float, params["V_peak"])
+        R = cast(float, params["R"])
+        X = cast(float, params["X"])
 
     # --- Handle edge cases before plotting ---
-    if params.get("Z") == float("inf"):
+    if not is_dc and params.get("Z") == float("inf"):
         messagebox.showinfo(
             "Plot Info",
             "Cannot plot waveforms for open circuit (infinite impedance, zero current).",
         )
         return
-    if I_peak == float("inf"):
+    if not is_dc and I_peak == float("inf"):
         messagebox.showinfo(
             "Plot Info", "Cannot plot waveforms for short circuit (infinite current)."
         )
         return
-    if V_peak == 0 and I_peak == 0:
+    if not is_dc and V_peak == 0 and I_peak == 0:
         messagebox.showinfo(
             "Plot Info", "Input voltage is zero, waveforms are all zero."
         )
@@ -88,10 +95,6 @@ def plot_waveforms(params: Dict[str, Optional[float]], circuit_type: str):
         )
         t = np.linspace(0, 1, 2)  # Simple time vector for DC plot
         # Use RMS values directly for DC representation
-        v_s_val = params["V_rms"]
-        i_val = params["I_rms"]
-        vr_val = params["V_rms_R"]
-        vx_val = params["V_rms_X"]
 
         plt.figure(figsize=(10, 6))
         plt.plot(
@@ -140,8 +143,8 @@ def plot_waveforms(params: Dict[str, Optional[float]], circuit_type: str):
         return
 
     # --- AC Plotting ---
-    omega = params["omega"]
-    f_val = params["f"]
+    assert f_val is not None  # for mypy
+    omega = cast(float, params["omega"])
     T = 1.0 / f_val  # Period
     t = np.linspace(0, 2 * T, 500)  # Time vector for 2 cycles
 
@@ -217,11 +220,11 @@ def plot_phasors(params: Dict[str, Optional[float]], circuit_type: str):
         return
 
     # --- Get Magnitudes and Angles ---
-    v_s_mag = params["V_rms"]
-    i_mag = params["I_rms"]
-    v_r_mag = params["V_rms_R"]
-    v_x_mag = params["V_rms_X"]
-    phi_impedance_deg = params["phi"]  # Angle of Z (V leads I by this)
+    v_s_mag = cast(float, params["V_rms"])
+    i_mag = cast(float, params["I_rms"])
+    v_r_mag = cast(float, params["V_rms_R"])
+    v_x_mag = cast(float, params["V_rms_X"])
+    phi_impedance_deg = cast(float, params["phi"])  # Angle of Z (V leads I by this)
 
     # Angles (in degrees, relative to V_S which is at 0 degrees)
     v_s_angle_deg = 0.0
@@ -246,14 +249,14 @@ def plot_phasors(params: Dict[str, Optional[float]], circuit_type: str):
 
     # --- Plot Phasors using quiver ---
     # quiver(x_pos, y_pos, x_dir, y_dir, angles='xy', scale_units='xy', scale=1)
-    phasors = {
-        "V_S": (v_s_mag, v_s_angle_rad, "red", 2),
+    phasors: Dict[str, Tuple[float, float, str, float]] = {
+        "V_S": (v_s_mag, v_s_angle_rad, "red", 2.0),
         "I": (i_mag, i_angle_rad, "blue", 1.5),
         "V_R": (v_r_mag, v_r_angle_rad, "green", 1.5),
         f"V_{circuit_type[1]}": (v_x_mag, v_x_angle_rad, "purple", 1.5),  # V_L or V_C
     }
 
-    max_val = 0  # To scale plot limits
+    max_val: float = 0.0  # To scale plot limits
 
     for label, (mag, angle_rad, color, width) in phasors.items():
         if mag > max_val:
@@ -337,7 +340,7 @@ class ACCircuitSolverApp:
         # --- Variables ---
         self.circuit_var = tk.StringVar(value="RL")
         self.calc_params: Dict[str, Optional[float]] = {}  # Store calculation results
-        self.input_values: Dict[str, Optional[float]] = {}  # Store raw inputs used
+        self.input_values: Dict[str, object] = {}  # Store raw inputs used
 
         # --- Widgets ---
         self.widgets: Dict[str, Dict[str, ttk.Widget]] = {}  # Store input widgets
@@ -570,7 +573,7 @@ class ACCircuitSolverApp:
         label_widget.grid(row=row, column=0, sticky=tk.E, padx=(0, 5), pady=2)
 
         entry_widget = ttk.Entry(parent_frame)
-        entry_widget.grid(row=row, column=1, sticky=(tk.W, tk.E), pady=2)
+        entry_widget.grid(row=row, column=1, sticky=tk.W + tk.E, pady=2)
 
         unit_combo = ttk.Combobox(
             parent_frame, values=units, width=5, state="readonly", justify="left"
@@ -591,14 +594,18 @@ class ACCircuitSolverApp:
             raise ValueError(f"Internal Error: Widget key '{widget_key}' not found.")
 
         input_widgets = self.widgets[widget_key]
-        entry_widget = input_widgets.get("entry")
-        unit_widget = input_widgets.get("unit")
-        label_widget = input_widgets.get("label")
+        entry_widget_obj = input_widgets.get("entry")
+        unit_widget_obj = input_widgets.get("unit")
+        label_widget_obj = input_widgets.get("label")
 
-        if not all([entry_widget, unit_widget, label_widget]):
+        if not all([entry_widget_obj, unit_widget_obj, label_widget_obj]):
             raise ValueError(
                 f"Internal Error: Missing widget components for '{widget_key}'."
             )
+
+        entry_widget = cast(ttk.Entry, entry_widget_obj)
+        unit_widget = cast(ttk.Combobox, unit_widget_obj)
+        label_widget = cast(ttk.Label, label_widget_obj)
 
         try:
             full_label_text = label_widget.cget("text")
@@ -628,12 +635,14 @@ class ACCircuitSolverApp:
         try:
             unit = unit_widget.get()
             self.input_values[f"{widget_key}_unit"] = unit  # Store unit used
-            if (
-                component_type_key not in UNIT_FACTORS
-                or unit not in UNIT_FACTORS[component_type_key]
-            ):
+            if component_type_key not in UNIT_FACTORS:
+                raise ValueError(
+                    f"Invalid component type '{component_type_key}' for '{label_text}'."
+                )
+            unit_dict = UNIT_FACTORS[component_type_key]
+            if unit not in unit_dict:
                 raise ValueError(f"Invalid unit '{unit}' selected for '{label_text}'.")
-            factor = UNIT_FACTORS[component_type_key][unit]
+            factor = unit_dict[unit]
             result_value = value * factor
             # Store value *after* unit conversion for calculation function
             self.input_values[f"{widget_key}_si"] = result_value

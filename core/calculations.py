@@ -128,11 +128,16 @@ def calculate_derived_reactance_params(
     except ZeroDivisionError:
         raise ValueError("Calculation error: Division by zero occurred.")
 
-    final_vals = (derived_component, derived_reactance, derived_omega)
-    if all(x is not None for x in final_vals):
-        c, r, w = final_vals
-        expected_reactance = None
-        if param_type == "C" and (c is None or c <= 0):
+    if (
+        derived_component is not None
+        and derived_reactance is not None
+        and derived_omega is not None
+    ):
+        c = derived_component
+        r = derived_reactance
+        w = derived_omega
+        expected_reactance: Optional[float] = None
+        if param_type == "C" and c <= 0:
             pass
         elif param_type == "L" and c is None:
             pass
