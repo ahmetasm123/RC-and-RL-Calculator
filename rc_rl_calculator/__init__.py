@@ -1,6 +1,4 @@
-"""Top-level package for RC and RL Calculator."""
-
-__all__ = []
+"""RC and RL Calculator package."""
 
 __version__ = "0.1.0"
 
