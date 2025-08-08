@@ -1,10 +1,15 @@
+import logging
 import math
 import numpy as np
 import matplotlib.pyplot as plt
 import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext  # Added scrolledtext
 from typing import Dict, Optional, List
+
 from core.calculations import calculate_series_ac_circuit, PI_OVER_2
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 # --- Unit Multipliers ---
@@ -156,7 +161,7 @@ def plot_waveforms(params: Dict[str, Optional[float]], circuit_type: str):
     try:
         plt.style.use("seaborn-v0_8-darkgrid")  # Use a pleasant style
     except OSError:
-        print("Seaborn style not found, using default.")  # Fallback style
+        logger.info("Seaborn style not found, using default.")
         plt.style.use("default")
 
     plt.figure(figsize=(10, 6))
@@ -312,7 +317,7 @@ class ACCircuitSolverApp:
                     style.theme_use(theme)
                     break
                 except tk.TclError:
-                    print(f"Theme '{theme}' failed to load, trying next.")
+                    logger.error("Theme '%s' failed to load, trying next.", theme)
                     style.theme_use("default")
 
         style.configure("TLabel", padding=3, font=("Segoe UI", 9))
@@ -966,11 +971,7 @@ class ACCircuitSolverApp:
             self.status_var.set("Unexpected Error!")
             self.text_output.config(state=tk.DISABLED)
             self.text_calc_steps.config(state=tk.DISABLED)
-            import traceback
-
-            print("--- UNEXPECTED ERROR ---")
-            traceback.print_exc()
-            print("------------------------")
+            logger.exception("Unexpected error during calculation")
             return
 
         # --- Display Results ---
@@ -1090,11 +1091,7 @@ class ACCircuitSolverApp:
                 f"Unexpected error during waveform plotting:\n{type(e).__name__}: {e}",
             )
             self.status_var.set("Plotting Error!")
-            import traceback
-
-            print("--- UNEXPECTED WAVE PLOT ERROR ---")
-            traceback.print_exc()
-            print("------------------------------")
+            logger.exception("Unexpected error during waveform plotting")
 
     def plot_phasors_action(self):
         """Calls the phasor plotting function."""
@@ -1120,8 +1117,4 @@ class ACCircuitSolverApp:
                 f"Unexpected error during phasor plotting:\n{type(e).__name__}: {e}",
             )
             self.status_var.set("Plotting Error!")
-            import traceback
-
-            print("--- UNEXPECTED PHASOR PLOT ERROR ---")
-            traceback.print_exc()
-            print("------------------------------")
+            logger.exception("Unexpected error during phasor plotting")
