@@ -8,7 +8,12 @@ from typing import Dict, Optional, List
 import ttkbootstrap as ttkb
 from ttkbootstrap import ttk
 
-from rc_rl_calculator.core.calculations import calculate_series_ac_circuit, PI_OVER_2
+from rc_rl_calculator.core.calculations import (
+    calculate_parallel_rlc_circuit,
+    calculate_series_ac_circuit,
+    calculate_series_rlc_circuit,
+    PI_OVER_2,
+)
 
 
 # --- Unit Multipliers ---
@@ -367,6 +372,22 @@ class ACCircuitSolverApp:
             command=self._toggle_fields,
         )
         rc_rb.pack(side=tk.LEFT, padx=5)
+        rlc_s_rb = ttk.Radiobutton(
+            sel_frame,
+            text="RLC Series",
+            variable=self.circuit_var,
+            value="RLC_SERIES",
+            command=self._toggle_fields,
+        )
+        rlc_s_rb.pack(side=tk.LEFT, padx=5)
+        rlc_p_rb = ttk.Radiobutton(
+            sel_frame,
+            text="RLC Parallel",
+            variable=self.circuit_var,
+            value="RLC_PARALLEL",
+            command=self._toggle_fields,
+        )
+        rlc_p_rb.pack(side=tk.LEFT, padx=5)
         current_row += 1
 
         # --- Input Fields ---
@@ -637,28 +658,46 @@ class ACCircuitSolverApp:
             )
 
     def _toggle_fields(self, *args):
-        """Enable/disable L/XL or C/XC fields based on circuit type selection."""
-        is_rl = self.circuit_var.get() == "RL"
-        rl_state = tk.NORMAL if is_rl else tk.DISABLED
-        rc_state = tk.DISABLED if is_rl else tk.NORMAL
+        """Enable/disable input fields based on circuit type selection."""
+        circuit_type = self.circuit_var.get()
 
-        for widget in self.rl_widgets_ref:
-            if isinstance(widget, (ttk.Entry, ttk.Combobox)):
-                widget.config(state=rl_state)
-        for widget in self.rc_widgets_ref:
-            if isinstance(widget, (ttk.Entry, ttk.Combobox)):
-                widget.config(state=rc_state)
-
-        if not is_rl:
-            if "L" in self.widgets:
-                self.widgets["L"]["entry"].delete(0, tk.END)
-            if "XL" in self.widgets:
-                self.widgets["XL"]["entry"].delete(0, tk.END)
-        else:
+        if circuit_type == "RL":
+            rl_state = tk.NORMAL
+            rc_state = tk.DISABLED
+            for widget in self.rl_widgets_ref:
+                if isinstance(widget, (ttk.Entry, ttk.Combobox)):
+                    widget.config(state=rl_state)
+            for widget in self.rc_widgets_ref:
+                if isinstance(widget, (ttk.Entry, ttk.Combobox)):
+                    widget.config(state=rc_state)
             if "C" in self.widgets:
                 self.widgets["C"]["entry"].delete(0, tk.END)
             if "XC" in self.widgets:
                 self.widgets["XC"]["entry"].delete(0, tk.END)
+        elif circuit_type == "RC":
+            rl_state = tk.DISABLED
+            rc_state = tk.NORMAL
+            for widget in self.rl_widgets_ref:
+                if isinstance(widget, (ttk.Entry, ttk.Combobox)):
+                    widget.config(state=rl_state)
+            for widget in self.rc_widgets_ref:
+                if isinstance(widget, (ttk.Entry, ttk.Combobox)):
+                    widget.config(state=rc_state)
+            if "L" in self.widgets:
+                self.widgets["L"]["entry"].delete(0, tk.END)
+            if "XL" in self.widgets:
+                self.widgets["XL"]["entry"].delete(0, tk.END)
+        else:  # RLC circuits
+            for widget in self.rl_widgets_ref + self.rc_widgets_ref:
+                if isinstance(widget, (ttk.Entry, ttk.Combobox)):
+                    widget.config(state=tk.NORMAL)
+            # Disable reactance inputs; L and C must come directly
+            for key in ["XL", "XC"]:
+                if key in self.widgets:
+                    for widget in self.widgets[key].values():
+                        if isinstance(widget, (ttk.Entry, ttk.Combobox)):
+                            widget.config(state=tk.DISABLED)
+                    self.widgets[key]["entry"].delete(0, tk.END)
 
         # Reset results, steps, and plot buttons when type changes
         self.text_output.config(state=tk.NORMAL)
@@ -703,6 +742,12 @@ class ACCircuitSolverApp:
         p = self.calc_params  # Shorthand
         inp = self.input_values  # Shorthand for SI values
         circuit_type = self.circuit_var.get()
+        if circuit_type not in {"RL", "RC"}:
+            self.text_calc_steps.insert(
+                tk.END, "Detailed calculation steps for RLC circuits are not yet available."
+            )
+            self.text_calc_steps.config(state=tk.DISABLED)
+            return
         comp_char = circuit_type[1]  # 'L' or 'C'
         react_char = f"X_{comp_char}"  # 'X_L' or 'X_C'
 
@@ -940,9 +985,25 @@ class ACCircuitSolverApp:
                 self.calc_params = calculate_series_ac_circuit(
                     V_rms, R, L, X_L, f, "RL"
                 )
-            else:  # RC
+            elif circuit_type == "RC":
                 self.calc_params = calculate_series_ac_circuit(
                     V_rms, R, C, X_C, f, "RC"
+                )
+            elif circuit_type == "RLC_SERIES":
+                if None in (L, C, f):
+                    raise ValueError(
+                        "L, C, and frequency are required for RLC calculations."
+                    )
+                self.calc_params = calculate_series_rlc_circuit(
+                    V_rms, R, L, C, f
+                )
+            else:  # RLC_PARALLEL
+                if None in (L, C, f):
+                    raise ValueError(
+                        "L, C, and frequency are required for RLC calculations."
+                    )
+                self.calc_params = calculate_parallel_rlc_circuit(
+                    V_rms, R, L, C, f
                 )
 
         except ValueError as e:
@@ -970,31 +1031,65 @@ class ACCircuitSolverApp:
         self.status_var.set("Calculation Complete.")
         self.text_output.insert(tk.END, f"--- {circuit_type} Circuit Results ---\n\n")
         # (Keep the result display logic from the previous version)
-        display_map = [
-            ("V_rms", "RMS Source Voltage (V\u209b)", "V"),
-            ("R", "Resistance (R)", "Ω"),
-            ("f", "Frequency (f)", "Hz"),
-            ("L", "Inductance (L)", "H"),
-            ("C", "Capacitance (C)", "F"),
-            ("X_L", "Ind. Reactance (X\u2097)", "Ω"),
-            ("X_C", "Cap. Reactance (X\u1d9c)", "Ω"),
-            ("omega", "Angular Freq. (ω)", "rad/s"),
-            ("Z", "Impedance Mag. (|Z|)", "Ω"),
-            ("phi", "Impedance Phase (∠Z)", "°"),
-            ("I_rms", "RMS Current (I)", "A"),
-            ("I_peak", "Peak Current (I_pk)", "A"),
-            ("V_peak", "Peak Source Voltage (V\u209b_pk)", "V"),
-            ("V_rms_R", "RMS Voltage (V\u1d63)", "V"),
-            ("V_rms_X", "RMS Voltage (V\u2093)", "V"),
-        ]
+        if circuit_type in {"RL", "RC"}:
+            display_map = [
+                ("V_rms", "RMS Source Voltage (V\u209b)", "V"),
+                ("R", "Resistance (R)", "Ω"),
+                ("f", "Frequency (f)", "Hz"),
+                ("L", "Inductance (L)", "H"),
+                ("C", "Capacitance (C)", "F"),
+                ("X_L", "Ind. Reactance (X\u2097)", "Ω"),
+                ("X_C", "Cap. Reactance (X\u1d9c)", "Ω"),
+                ("omega", "Angular Freq. (ω)", "rad/s"),
+                ("Z", "Impedance Mag. (|Z|)", "Ω"),
+                ("phi", "Impedance Phase (∠Z)", "°"),
+                ("I_rms", "RMS Current (I)", "A"),
+                ("I_peak", "Peak Current (I_pk)", "A"),
+                ("V_peak", "Peak Source Voltage (V\u209b_pk)", "V"),
+                ("V_rms_R", "RMS Voltage (V\u1d63)", "V"),
+                ("V_rms_X", "RMS Voltage (V\u2093)", "V"),
+            ]
+        elif circuit_type == "RLC_SERIES":
+            display_map = [
+                ("V_rms", "RMS Source Voltage (V\u209b)", "V"),
+                ("R", "Resistance (R)", "Ω"),
+                ("f", "Frequency (f)", "Hz"),
+                ("L", "Inductance (L)", "H"),
+                ("C", "Capacitance (C)", "F"),
+                ("omega", "Angular Freq. (ω)", "rad/s"),
+                ("X_L", "Ind. Reactance (X\u2097)", "Ω"),
+                ("X_C", "Cap. Reactance (X\u1d9c)", "Ω"),
+                ("X", "Net Reactance (X)", "Ω"),
+                ("Z", "Impedance Mag. (|Z|)", "Ω"),
+                ("phi", "Impedance Phase (∠Z)", "°"),
+                ("I_rms", "RMS Current (I)", "A"),
+                ("I_peak", "Peak Current (I_pk)", "A"),
+                ("V_peak", "Peak Source Voltage (V\u209b_pk)", "V"),
+                ("V_rms_R", "RMS Voltage (V\u1d63)", "V"),
+                ("V_rms_L", "RMS Voltage (V\u2097)", "V"),
+                ("V_rms_C", "RMS Voltage (V\u1d9c)", "V"),
+            ]
+        else:  # RLC_PARALLEL
+            display_map = [
+                ("V_rms", "RMS Source Voltage (V\u209b)", "V"),
+                ("R", "Resistance (R)", "Ω"),
+                ("f", "Frequency (f)", "Hz"),
+                ("L", "Inductance (L)", "H"),
+                ("C", "Capacitance (C)", "F"),
+                ("omega", "Angular Freq. (ω)", "rad/s"),
+                ("X_L", "Ind. Reactance (X\u2097)", "Ω"),
+                ("X_C", "Cap. Reactance (X\u1d9c)", "Ω"),
+                ("Z", "Impedance Mag. (|Z|)", "Ω"),
+                ("phi", "Impedance Phase (∠Z)", "°"),
+                ("I_rms", "Total RMS Current (I)", "A"),
+                ("I_peak", "Peak Current (I_pk)", "A"),
+                ("V_peak", "Peak Source Voltage (V\u209b_pk)", "V"),
+                ("I_rms_R", "RMS Current (I_R)", "A"),
+                ("I_rms_L", "RMS Current (I_L)", "A"),
+                ("I_rms_C", "RMS Current (I_C)", "A"),
+            ]
         results_text = ""
         for key, label, unit in display_map:
-            is_rl_key = key in ["L", "X_L"]
-            is_rc_key = key in ["C", "X_C"]
-            if circuit_type == "RL" and is_rc_key:
-                continue
-            if circuit_type == "RC" and is_rl_key:
-                continue
             if key in self.calc_params and self.calc_params[key] is not None:
                 value = self.calc_params[key]
                 if isinstance(value, (int, float)):
@@ -1032,31 +1127,28 @@ class ACCircuitSolverApp:
         self._display_calculation_steps()  # Call the new method
 
         # --- Enable Plot Buttons ---
-        # Check conditions for enabling plot buttons
         f_val = self.calc_params.get("f")
-        is_dc = f_val is not None and math.isclose(f_val, 0)
-        is_ac = f_val is not None and f_val > 0
-        no_inf = self.calc_params.get("Z") != float("inf") and self.calc_params.get(
-            "I_rms"
-        ) != float("inf")
-
-        if no_inf and (
-            is_ac or is_dc
-        ):  # Waveforms can be plotted for AC or DC (if not open/short)
-            self.btn_plot_wave.config(state=tk.NORMAL)
+        no_inf = (
+            self.calc_params.get("Z") != float("inf")
+            and self.calc_params.get("I_rms") != float("inf")
+        )
+        circuit_type = self.circuit_var.get()
+        if circuit_type in {"RL", "RC"}:
+            is_dc = f_val is not None and math.isclose(f_val, 0)
+            is_ac = f_val is not None and f_val > 0
+            if no_inf and (is_ac or is_dc):
+                self.btn_plot_wave.config(state=tk.NORMAL)
+            else:
+                self.btn_plot_wave.config(state=tk.DISABLED)
+            if no_inf and is_ac:
+                self.btn_plot_phasor.config(state=tk.NORMAL)
+            else:
+                self.btn_plot_phasor.config(state=tk.DISABLED)
         else:
             self.btn_plot_wave.config(state=tk.DISABLED)
-
-        if (
-            no_inf and is_ac
-        ):  # Phasors typically only plotted for AC (if not open/short)
-            self.btn_plot_phasor.config(state=tk.NORMAL)
-        else:
             self.btn_plot_phasor.config(state=tk.DISABLED)
 
-        if (
-            not no_inf and self.calc_params
-        ):  # If calculation ran but resulted in open/short
+        if (not no_inf and self.calc_params):
             self.status_var.set("Calculation Complete (Open/Short Circuit).")
 
     # --- Plot Action Methods ---
