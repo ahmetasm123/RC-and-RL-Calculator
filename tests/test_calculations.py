@@ -9,6 +9,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from rc_rl_calculator.core.calculations import (
     calculate_derived_reactance_params,
     calculate_series_ac_circuit,
+    calculate_parallel_rlc_circuit,
+    calculate_series_rlc_circuit,
 )
 
 
@@ -79,3 +81,23 @@ def test_negative_voltage_raises(expect_value_error):
 
 def test_negative_frequency_raises(expect_value_error):
     expect_value_error(calculate_series_ac_circuit, 1.0, 10.0, None, None, -1.0, "RL")
+
+
+def test_series_rlc_basic(approx_cmp):
+    result = calculate_series_rlc_circuit(10.0, 10.0, 0.05, 1e-6, 1000.0)
+    assert result["Z"] == approx_cmp(155.3266, rel=1e-4)
+    assert result["phi"] == approx_cmp(86.3087, rel=1e-4)
+
+
+def test_parallel_rlc_basic(approx_cmp):
+    result = calculate_parallel_rlc_circuit(10.0, 100.0, 0.1, 10e-6, 1000.0)
+    assert result["Z"] == approx_cmp(16.1157, rel=1e-4)
+    assert result["phi"] == approx_cmp(-80.7259, rel=1e-4)
+
+
+def test_series_rlc_zero_inductance_raises(expect_value_error):
+    expect_value_error(calculate_series_rlc_circuit, 10.0, 10.0, 0.0, 1e-6, 1000.0)
+
+
+def test_parallel_rlc_zero_capacitance_raises(expect_value_error):
+    expect_value_error(calculate_parallel_rlc_circuit, 10.0, 100.0, 0.1, 0.0, 1000.0)

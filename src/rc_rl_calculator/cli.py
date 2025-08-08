@@ -5,15 +5,19 @@ from __future__ import annotations
 import argparse
 from typing import Iterable, Optional
 
-from rc_rl_calculator.core.calculations import calculate_series_ac_circuit
+from rc_rl_calculator.core.calculations import (
+    calculate_parallel_rlc_circuit,
+    calculate_series_ac_circuit,
+    calculate_series_rlc_circuit,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
     """Create the argument parser for the CLI."""
     parser = argparse.ArgumentParser(
         description=(
-            "Solve series RC or RL circuits given voltage, resistance and "
-            "two of component value, reactance or frequency."
+            "Solve series RL/RC or series/parallel RLC circuits given "
+            "the necessary parameters."
         )
     )
     parser.add_argument(
@@ -39,13 +43,23 @@ def build_parser() -> argparse.ArgumentParser:
         help="Reactance magnitude in ohms",
     )
     parser.add_argument(
+        "--inductance",
+        type=float,
+        help="Inductance in henries for RLC circuits",
+    )
+    parser.add_argument(
+        "--capacitance",
+        type=float,
+        help="Capacitance in farads for RLC circuits",
+    )
+    parser.add_argument(
         "--frequency",
         type=float,
         help="Frequency in hertz",
     )
     parser.add_argument(
         "--circuit",
-        choices=["RL", "RC"],
+        choices=["RL", "RC", "RLC_SERIES", "RLC_PARALLEL"],
         required=True,
         help="Circuit type to solve",
     )
@@ -57,14 +71,44 @@ def main(argv: Optional[Iterable[str]] = None) -> None:
     parser = build_parser()
     args = parser.parse_args(argv)
 
-    result = calculate_series_ac_circuit(
-        V_rms=args.voltage,
-        R=args.resistance,
-        component_val=args.component,
-        reactance_val=args.reactance,
-        f=args.frequency,
-        circuit_type=args.circuit,
-    )
+    if args.circuit in {"RL", "RC"}:
+        result = calculate_series_ac_circuit(
+            V_rms=args.voltage,
+            R=args.resistance,
+            component_val=args.component,
+            reactance_val=args.reactance,
+            f=args.frequency,
+            circuit_type=args.circuit,
+        )
+    else:
+        if (
+            args.inductance is None
+            or args.capacitance is None
+            or args.frequency is None
+        ):
+            parser.error(
+                "--inductance, --capacitance and --frequency are required for RLC circuits"
+            )
+        if args.inductance == 0 or args.capacitance == 0 or args.frequency == 0:
+            parser.error(
+                "--inductance, --capacitance and --frequency must be non-zero for RLC circuits"
+            )
+        if args.circuit == "RLC_SERIES":
+            result = calculate_series_rlc_circuit(
+                V_rms=args.voltage,
+                R=args.resistance,
+                L=args.inductance,
+                C=args.capacitance,
+                f=args.frequency,
+            )
+        else:
+            result = calculate_parallel_rlc_circuit(
+                V_rms=args.voltage,
+                R=args.resistance,
+                L=args.inductance,
+                C=args.capacitance,
+                f=args.frequency,
+            )
 
     for key, value in result.items():
         print(f"{key}: {value}")
