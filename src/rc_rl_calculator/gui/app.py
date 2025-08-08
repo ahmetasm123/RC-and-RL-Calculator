@@ -2,8 +2,12 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 import tkinter as tk
-from tkinter import ttk, messagebox, scrolledtext  # Added scrolledtext
+from tkinter import messagebox, scrolledtext
 from typing import Dict, Optional, List
+
+import ttkbootstrap as ttkb
+from ttkbootstrap import ttk
+
 from rc_rl_calculator.core.calculations import calculate_series_ac_circuit, PI_OVER_2
 
 
@@ -303,18 +307,7 @@ class ACCircuitSolverApp:
         master.minsize(550, 700)  # Increased min size for new panel
 
         # --- Style ---
-        style = ttk.Style()
-        available_themes = style.theme_names()
-        preferred_themes = ["clam", "alt", "vista", "xpnative"]
-        for theme in preferred_themes:
-            if theme in available_themes:
-                try:
-                    style.theme_use(theme)
-                    break
-                except tk.TclError:
-                    print(f"Theme '{theme}' failed to load, trying next.")
-                    style.theme_use("default")
-
+        style = ttkb.Style()
         style.configure("TLabel", padding=3, font=("Segoe UI", 9))
         style.configure("TEntry", padding=(5, 3), font=("Segoe UI", 9))
         style.configure("TButton", padding=5, font=("Segoe UI", 9, "bold"))

@@ -12,10 +12,12 @@ requires-python = ">=3.11"
 dependencies = [
     "numpy",
     "matplotlib",
+    "ttkbootstrap",
 ]
 
 [project.scripts]
 "rc-rl-calc" = "rc_rl_calculator.cli:main"
+"rc-rl-gui" = "rc_rl_calculator.main:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
