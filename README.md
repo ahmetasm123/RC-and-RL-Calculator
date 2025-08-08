@@ -6,7 +6,7 @@ A Python GUI application for exploring series **RL** (resistor–inductor) and *
 1. Ensure Python 3.11+ is installed.
 2. Install dependencies:
    ```bash
-   pip install numpy matplotlib
+   pip install -r requirements.txt
    ```
    On Linux you may also need the Tk GUI libraries, e.g. `sudo apt-get install python3-tk`.
 
