@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 
@@ -112,3 +113,25 @@ def test_cli_invalid_parameters_exit_code_and_message(capsys):
     captured = capsys.readouterr()
     assert "Resistance (R) must be non-negative." in captured.err
     assert captured.out == ""
+
+
+def test_cli_outputs_json_when_flag_used(capsys):
+    argv = [
+        "--voltage",
+        "10",
+        "--resistance",
+        "100",
+        "--component",
+        "1e-6",
+        "--frequency",
+        "1000",
+        "--circuit",
+        "RC",
+        "--json",
+    ]
+    main(argv)
+    output = capsys.readouterr().out
+    result = json.loads(output)
+    expected = calculate_series_ac_circuit(10.0, 100.0, 1e-6, None, 1000.0, "RC")
+    for key, value in expected.items():
+        assert result[key] == pytest.approx(value)

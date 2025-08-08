@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import argparse
-from typing import Iterable, Optional
+import json
 import sys
+from typing import Iterable, Optional
 
 from rc_rl_calculator.core.calculations import (
     calculate_parallel_rlc_circuit,
@@ -64,6 +65,11 @@ def build_parser() -> argparse.ArgumentParser:
         required=True,
         help="Circuit type to solve",
     )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output results as JSON",
+    )
     return parser
 
 
@@ -108,8 +114,11 @@ def main(argv: Optional[Iterable[str]] = None) -> None:
                     f=args.frequency,
                 )
 
-        for key, value in result.items():
-            print(f"{key}: {value}")
+        if args.json:
+            print(json.dumps(result))
+        else:
+            for key, value in result.items():
+                print(f"{key}: {value}")
     except ValueError as exc:
         print(exc, file=sys.stderr)
         sys.exit(1)
