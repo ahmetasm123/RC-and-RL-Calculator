@@ -1,5 +1,11 @@
 """Example demonstrating core RC circuit calculation."""
 
+import sys
+from pathlib import Path
+
+# Allow running example without installing the package
+sys.path.append(str(Path(__file__).resolve().parents[1] / "src"))
+
 from rc_rl_calculator.core.calculations import calculate_series_ac_circuit
 
 
