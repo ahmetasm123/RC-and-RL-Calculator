@@ -95,7 +95,9 @@ def test_parallel_rlc_zero_inductance_short():
     result = calculate_parallel_rlc_circuit(5.0, 10.0, 0.0, 1e-6, 1000.0)
     assert result["Z"] == 0.0
     assert result["I_rms"] == float("inf")
+    assert result["I_rms_R"] == float("inf")
     assert result["I_rms_L"] == float("inf")
+    assert result["I_rms_C"] == float("inf")
 
 
 def test_parallel_rlc_zero_resistance_short():
@@ -103,6 +105,8 @@ def test_parallel_rlc_zero_resistance_short():
     assert result["Z"] == 0.0
     assert result["I_rms"] == float("inf")
     assert result["I_rms_R"] == float("inf")
+    assert result["I_rms_L"] == float("inf")
+    assert result["I_rms_C"] == float("inf")
 
 
 # Tests for equivalent capacitance and inductance

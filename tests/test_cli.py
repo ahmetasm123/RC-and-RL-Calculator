@@ -1,5 +1,4 @@
 import json
-
 import pytest
 
 from rc_rl_calculator.cli import main
