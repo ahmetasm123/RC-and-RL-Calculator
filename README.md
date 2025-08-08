@@ -18,11 +18,11 @@ A Python GUI and CLI application for exploring series **RL** (resistor–inducto
 ## Running the GUI
 Launch the calculator with:
 ```bash
-python main.py
-```
-Alternatively, use the module form:
-```bash
 python -m rc_rl_calculator
+```
+This uses the package's __main__ entry point. You can also invoke the GUI module directly with:
+```bash
+python -m rc_rl_calculator.main
 ```
 
 ### GUI Usage

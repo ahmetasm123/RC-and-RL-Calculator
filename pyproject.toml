@@ -17,6 +17,12 @@ dependencies = [
 [project.scripts]
 "rc-rl-calc" = "rc_rl_calculator.cli:main"
 
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [tool.black]
 line-length = 88
 target-version = ["py311"]
