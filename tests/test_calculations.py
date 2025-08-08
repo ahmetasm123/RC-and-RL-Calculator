@@ -11,6 +11,8 @@ from rc_rl_calculator.core.calculations import (
     calculate_series_ac_circuit,
     calculate_parallel_rlc_circuit,
     calculate_series_rlc_circuit,
+    equivalent_capacitance,
+    equivalent_inductance,
 )
 
 
@@ -93,3 +95,28 @@ def test_parallel_rlc_basic(approx_cmp):
     result = calculate_parallel_rlc_circuit(10.0, 100.0, 0.1, 10e-6, 1000.0)
     assert result["Z"] == approx_cmp(16.1157, rel=1e-4)
     assert result["phi"] == approx_cmp(-80.7259, rel=1e-4)
+
+
+# Tests for equivalent capacitance and inductance
+
+
+def test_equivalent_capacitance(approx_cmp):
+    caps = [1e-6, 2e-6, 3e-6]
+    assert equivalent_capacitance(caps, "parallel") == approx_cmp(6e-6)
+    series_expected = 1 / (1 / 1e-6 + 1 / 2e-6 + 1 / 3e-6)
+    assert equivalent_capacitance(caps, "series") == approx_cmp(series_expected)
+
+
+def test_equivalent_inductance(approx_cmp):
+    inds = [1e-3, 2e-3, 3e-3]
+    assert equivalent_inductance(inds, "series") == approx_cmp(6e-3)
+    parallel_expected = 1 / (1 / 1e-3 + 1 / 2e-3 + 1 / 3e-3)
+    assert equivalent_inductance(inds, "parallel") == approx_cmp(parallel_expected)
+
+
+def test_equivalent_capacitance_invalid(expect_value_error):
+    expect_value_error(equivalent_capacitance, [1e-6, -2e-6], "series")
+
+
+def test_equivalent_inductance_invalid(expect_value_error):
+    expect_value_error(equivalent_inductance, [1e-3, -2e-3], "parallel")

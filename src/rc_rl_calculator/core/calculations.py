@@ -1,10 +1,84 @@
 import math
-from typing import Dict, Optional, Tuple
+from typing import Dict, Iterable, Optional, Tuple
 import cmath
 
 SQRT_2 = math.sqrt(2)
 TWO_PI = 2 * math.pi
 PI_OVER_2 = math.pi / 2
+
+
+def equivalent_capacitance(capacitors: Iterable[float], connection: str) -> float:
+    """Compute the equivalent capacitance of multiple capacitors.
+
+    Parameters
+    ----------
+    capacitors : Iterable[float]
+        Capacitor values in farads. All values must be positive.
+    connection : str
+        ``"series"`` or ``"parallel"`` to select the configuration.
+
+    Returns
+    -------
+    float
+        The equivalent capacitance in farads.
+
+    Raises
+    ------
+    ValueError
+        If an invalid connection type is supplied or capacitor values are
+        non‑positive.
+    """
+
+    caps = list(capacitors)
+    if not caps:
+        raise ValueError("At least one capacitance value must be provided.")
+    if any(c <= 0 for c in caps):
+        raise ValueError("Capacitance values must be positive.")
+
+    connection = connection.lower()
+    if connection == "parallel":
+        return sum(caps)
+    if connection == "series":
+        return 1.0 / sum(1.0 / c for c in caps)
+    raise ValueError("connection must be 'series' or 'parallel'.")
+
+
+def equivalent_inductance(inductors: Iterable[float], connection: str) -> float:
+    """Compute the equivalent inductance of multiple inductors.
+
+    Parameters
+    ----------
+    inductors : Iterable[float]
+        Inductor values in henries. All values must be non‑negative.
+    connection : str
+        ``"series"`` or ``"parallel"`` to select the configuration.
+
+    Returns
+    -------
+    float
+        The equivalent inductance in henries.
+
+    Raises
+    ------
+    ValueError
+        If an invalid connection type is supplied or inductance values are
+        negative.
+    """
+
+    inds = list(inductors)
+    if not inds:
+        raise ValueError("At least one inductance value must be provided.")
+    if any(l < 0 for l in inds):
+        raise ValueError("Inductance values must be non-negative.")
+
+    connection = connection.lower()
+    if connection == "series":
+        return sum(inds)
+    if connection == "parallel":
+        if any(l == 0 for l in inds):
+            return 0.0
+        return 1.0 / sum(1.0 / l for l in inds)
+    raise ValueError("connection must be 'series' or 'parallel'.")
 
 
 def calculate_derived_reactance_params(
