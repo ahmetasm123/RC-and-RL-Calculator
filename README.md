@@ -84,19 +84,32 @@ Calculates impedance, phase angle and component voltages for a series RLC circui
 ### `calculate_parallel_rlc_circuit(V_rms, R, L, C, f)`
 Determines total impedance, phase angle and branch currents for a parallel RLC circuit.
 
-## Building an Executable
+## Building an Installer
 
-To create a standalone Windows executable for the GUI, install the optional
-build dependencies and run the helper script:
+To generate a standalone executable for your platform, install the optional
+dependencies and run the provided console command:
 
 ```bash
-pip install .[build]
-python build_exe.py
+pip install .[installer]
+create-installer
 ```
 
-The script invokes PyInstaller, writes ``rc_rl_calculator.exe`` to the ``dist``
-directory and then automatically launches it. Any build failures or missing
-output files will be reported in the console.
+The resulting file is placed in the ``dist`` directory. Example invocations
+on each supported operating system:
+
+```bash
+# Windows
+pip install .[installer]
+create-installer  # produces dist/rc_rl_calculator.exe
+
+# macOS
+pip install .[installer]
+create-installer  # produces dist/rc_rl_calculator.app
+
+# Linux
+pip install .[installer]
+create-installer  # produces dist/rc_rl_calculator
+```
 
 ## Contributing
 Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for

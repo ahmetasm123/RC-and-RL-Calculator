@@ -16,14 +16,16 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-build = ["pyinstaller"]
+installer = ["pyinstaller"]
 
 [project.scripts]
 "rc-rl-calc" = "rc_rl_calculator.cli:main"
 "rc-rl-gui" = "rc_rl_calculator.main:main"
+"create-installer" = "build_exe:create_installer"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
+py-modules = ["build_exe"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
